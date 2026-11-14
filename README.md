@@ -22,8 +22,8 @@ See [workflow](docs/SUPPLIER_TO_PROCUREMENT_WORKFLOW.md), [operating architectur
 ## Run locally
 Requirements: Node.js 20.19+.
 
-1. Copy `.env.example` to `.env.local`.
-2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` using the project URL and publishable key. Never place a service-role or secret key in browser code.
+1. Copy `.env.example` to `.env.local` (PowerShell: `Copy-Item .env.example .env.local`; macOS/Linux: `cp .env.example .env.local`).
+2. `.env.local` is intentionally ignored by Git. Keep it local; do not commit it. It contains only the browser-safe Supabase project URL and publishable key. Never place a service-role or secret key in browser code.
 3. Review and apply the timestamped SQL migrations to the intended Supabase project in order.
 4. Enable Supabase email/password authentication and allow the local and Pages URLs as email redirect destinations.
 5. Run `npm ci`, `npm test`, and `npm run dev`.
@@ -32,7 +32,7 @@ Requirements: Node.js 20.19+.
 ## GitHub Pages
 Configure Actions variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Add this URL to the Supabase Auth redirect allowlist:
 
-`https://jakelethard-star.github.io/KairoSphere122-0605e52e/`
+`https://kairosphere144.github.io/KairoSphere122/`
 
 ## Operating controls
 - Every operational record belongs to an organization and is protected by RLS.
