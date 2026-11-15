@@ -1,32 +1,13 @@
-<<<<<<< HEAD
 {
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "KairoSphere: launch browser preview",
-      "type": "pwa-chrome",
-      "request": "launch",
-      "url": "http://127.0.0.1:5500",
-      "webRoot": "${workspaceFolder}",
-      "runtimeArgs": [
-        "--new-window"
-      ]
-    }
-  ]
-}
-=======
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "KairoSphere - Google Chrome",
+      "name": "KairoSphere: Vite development server",
       "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:5173/",
       "webRoot": "${workspaceFolder}",
-      "runtimeExecutable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
       "sourceMaps": true
     }
   ]
 }
->>>>>>> origin/main

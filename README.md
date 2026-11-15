@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # KairoSphere
 
 **Industrial supplier intelligence, sourcing, procurement and warehouse operations.**
@@ -16,7 +15,7 @@ KairoSphere manages the operating path from supplier discovery to purchasing, re
 - PostgreSQL schema with tenant-aware foreign keys, row-level security and derived inventory balances.
 
 ## End-to-end workflow
-Supplier discovery → qualification → product catalogue → RFQ → quotation comparison → requisition → approval → purchase order → delivery → receiving and inspection → inventory ledger → invoice three-way match → settlement evidence → supplier performance.
+Supplier discovery -> qualification -> product catalogue -> RFQ -> quotation comparison -> requisition -> approval -> purchase order -> delivery -> receiving and inspection -> inventory ledger -> invoice three-way match -> settlement evidence -> supplier performance.
 
 See [workflow](docs/SUPPLIER_TO_PROCUREMENT_WORKFLOW.md), [operating architecture](docs/architecture/operating-model.md), [page/route/module bindings](docs/architecture/page-route-module-bindings.md), and [data contracts](docs/architecture/data-contracts.md).
 
@@ -48,7 +47,3 @@ Configure Actions variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_K
 The current build provides the application shell, organization creation, module navigation, register/list/create screens and dashboard. Detailed RFQ line editing, quote scoring, approval actions, PO conversion, receipt-to-ledger posting and invoice three-way matching remain next implementation increments. A visible register does not imply that its full workflow automation is complete.
 
 See [retirement register](docs/engineering/retirement-register.md) for replaced components and data disposition.
-=======
-# KairoSphere
-local build Test
->>>>>>> origin/main
