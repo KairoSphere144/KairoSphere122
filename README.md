@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # KairoSphere
 
 **Industrial supplier intelligence, sourcing, procurement and warehouse operations.**
@@ -47,3 +48,7 @@ Configure Actions variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_K
 The current build provides the application shell, organization creation, module navigation, register/list/create screens and dashboard. Detailed RFQ line editing, quote scoring, approval actions, PO conversion, receipt-to-ledger posting and invoice three-way matching remain next implementation increments. A visible register does not imply that its full workflow automation is complete.
 
 See [retirement register](docs/engineering/retirement-register.md) for replaced components and data disposition.
+=======
+# KairoSphere
+local build Test
+>>>>>>> origin/main
