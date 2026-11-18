@@ -19,14 +19,15 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
-# Supabase publishable configuration is public by design and safe for browser use.
-# Repository variables override these project defaults if configured later.
-env:
-  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://ndmmmxxxlseouxkduedh.supabase.co' }}
-  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_5XsfkcrVyrpXK95IC6wa1g_EwGBttGl' }}
-
 jobs:
   build:
+    # Supabase browser-safe configuration is supplied by this dedicated environment.
+    # Keep the GitHub Pages deployment environment separate from application build configuration.
+    environment:
+      name: kairosphere
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,8 +45,8 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Verify Supabase public configuration
         run: |
-          test -n "$VITE_SUPABASE_URL" || { echo "::error::Supabase project URL is missing."; exit 1; }
-          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Supabase publishable key is missing."; exit 1; }
+          test -n "$VITE_SUPABASE_URL" || { echo "::error::Supabase project URL is missing from the kairosphere environment."; exit 1; }
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Supabase publishable key is missing from the kairosphere environment."; exit 1; }
       - name: Build application
         run: npm run build
       - name: Upload Pages artifact
