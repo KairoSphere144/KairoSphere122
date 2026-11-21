@@ -3,9 +3,13 @@ import { modules } from "./modules/registry.js";
 import { listRecords, createRecord, createOrganization, getOrganizations } from "./data/records.js";
 import { validate } from "./domain/workflow.js";
 import { dashboard } from "./modules/dashboard.js";
+import { createSessionRequestGuard, runSessionMutation } from "./core/session-guard.js";
 
 const root=document.querySelector("#app");
 const state={user:null,org:null,route:location.hash.slice(1)||"dashboard"};
+const sessionGuard=createSessionRequestGuard();
+let activeSessionTicket=sessionGuard.activate(null).ticket;
+function isCurrentSession(ticket,userId=state.user?.id){return Boolean(userId)&&state.user?.id===userId&&sessionGuard.isCurrent(ticket);}
 const el=(tag,attrs={},children=[])=>{const n=document.createElement(tag);for(const [k,v] of Object.entries(attrs)){if(k==="text")n.textContent=v;else if(k==="className")n.className=v;else if(k.startsWith("on"))n.addEventListener(k.slice(2).toLowerCase(),v);else if(v!=null)n.setAttribute(k,v);}for(const c of children)n.append(c instanceof Node?c:document.createTextNode(String(c)));return n;};
 const msg=(node,text)=>{node.textContent=text;};
 function authScreen(){
@@ -16,10 +20,10 @@ function authScreen(){
  form.append(email,pass,submit,toggle,feedback);form.addEventListener("submit",async e=>{e.preventDefault();submit.disabled=true;try{const c={email:email.value.trim(),password:pass.value};const r=mode==="signup"?await supabase.auth.signUp({...c,options:{emailRedirectTo:new URL(import.meta.env.BASE_URL,location.origin).href}}):await supabase.auth.signInWithPassword(c);if(r.error)throw r.error;if(mode==="signup"&&!r.data.session)msg(feedback,"Verify your email, then sign in.");}catch(err){msg(feedback,err.message);}finally{submit.disabled=false;}});
  card.append(form);root.append(el("div",{className:"auth-shell"},[card]));
 }
-function organizationScreen(){
+function organizationScreen(ticket){
  root.replaceChildren();const card=el("section",{className:"auth-card"});card.append(el("div",{className:"brand large"},[el("span",{className:"brand-mark",text:"K"}),el("span",{text:"KairoSphere"})]),el("p",{className:"eyebrow",text:"WORKSPACE INITIALIZATION"}),el("h1",{text:"Create your organization"}),el("p",{className:"muted",text:"Operational records will be isolated inside this organization."}));
  const form=el("form",{className:"auth-form"}),name=el("input",{name:"name",placeholder:"Organization name",required:"required",maxlength:"140"}),submit=el("button",{className:"primary",type:"submit",text:"Create workspace"}),feedback=el("p",{className:"feedback"});form.append(name,submit,feedback);
- form.addEventListener("submit",async e=>{e.preventDefault();submit.disabled=true;try{await createOrganization(supabase,name.value.trim(),state.user.id);await loadWorkspace();}catch(err){msg(feedback,err.message);}finally{submit.disabled=false;}});card.append(form);root.append(el("div",{className:"auth-shell"},[card]));
+ form.addEventListener("submit",async e=>{e.preventDefault();const userId=state.user?.id;if(!isCurrentSession(ticket,userId))return;submit.disabled=true;try{await runSessionMutation({operation:()=>createOrganization(supabase,name.value.trim(),userId),isCurrent:()=>isCurrentSession(ticket,userId),onSuccess:()=>{void loadWorkspace(ticket);},onError:err=>msg(feedback,err.message)});}finally{submit.disabled=false;}});card.append(form);root.append(el("div",{className:"auth-shell"},[card]));
 }
 function shell(){
  root.replaceChildren();const frame=el("div",{className:"frame"}),side=el("aside",{className:"sidebar"});
@@ -28,7 +32,7 @@ function shell(){
  const main=el("main",{className:"main"});main.append(el("header",{className:"topbar"},[el("strong",{text:modules[state.route]?.label||"Overview"}),el("span",{className:"user",text:state.user?.email||""})]),el("section",{className:"content",id:"content"}));frame.append(side,main);root.append(frame);
 }
 function field(spec){const label=el("label",{className:"field"});label.append(el("span",{text:spec.label+(spec.required?" *":"")}));let input;if(spec.type==="textarea")input=el("textarea",{name:spec.name,required:spec.required?"required":null,rows:"3"});else if(spec.type==="select"){input=el("select",{name:spec.name});for(const x of spec.options)input.append(el("option",{value:x,text:x.replaceAll("_"," ")}));}else input=el("input",{name:spec.name,type:spec.type||"text",required:spec.required?"required":null,min:spec.min,max:spec.max,maxlength:spec.maxLength,step:spec.step});label.append(input);return label;}
-async function moduleView(key){
+async function moduleView(key,ticket){
  const item=modules[key];
  if(!item)throw new Error("Unknown workspace module.");
  const panel=el("div",{className:"panel"});
@@ -43,12 +47,21 @@ async function moduleView(key){
   const submit=el("button",{className:"primary",type:"submit",text:"Create record"});
   form.append(submit,feedback);
   form.addEventListener("submit",async e=>{
-   e.preventDefault();submit.disabled=true;
+   e.preventDefault();
+   const userId=state.user?.id;
+   const organizationId=state.org?.id;
+   if(!organizationId||!isCurrentSession(ticket,userId))return;
+   submit.disabled=true;
    try{
     const raw=Object.fromEntries(new FormData(form));
-    await createRecord(supabase,item.table,state.org.id,state.user.id,validate(key,raw));
-    form.reset();msg(feedback,"Record created.");await render();
-   }catch(err){msg(feedback,err.message);}finally{submit.disabled=false;}
+    const values=validate(key,raw);
+    await runSessionMutation({
+     operation:()=>createRecord(supabase,item.table,organizationId,userId,values),
+     isCurrent:()=>isCurrentSession(ticket,userId)&&state.org?.id===organizationId,
+     onSuccess:()=>{form.reset();msg(feedback,"Record created.");void render(ticket);},
+     onError:err=>msg(feedback,err.message)
+    });
+   }finally{submit.disabled=false;}
   });
   layout.append(records,el("aside",{className:"form-panel"},[el("p",{className:"eyebrow",text:"NEW RECORD"}),el("h2",{text:"Add "+item.label.toLowerCase()}),form]));
  }else{
@@ -72,9 +85,9 @@ async function moduleView(key){
  }catch(err){records.append(el("p",{className:"notice error",text:err.message}));}
  return panel.append(layout),panel;
 }
-async function render(){const target=document.querySelector("#content");if(!target)return;target.replaceChildren(el("p",{className:"muted",text:"Loading…"}));try{target.replaceChildren(await moduleView(state.route));}catch(err){target.replaceChildren(el("p",{className:"notice error",text:err.message}));}}
-async function loadWorkspace(){const orgs=await getOrganizations(supabase);state.org=orgs[0]||null;if(!state.org){organizationScreen();return;}shell();await render();}
-async function start(user){state.user=user;if(!user){state.org=null;authScreen();return;}try{await loadWorkspace();}catch(err){root.replaceChildren(el("p",{className:"notice error",text:err.message}));}}
-window.addEventListener("hashchange",()=>{state.route=location.hash.slice(1)||"dashboard";if(state.user&&state.org){shell();void render();}});
+async function render(ticket=activeSessionTicket){const target=document.querySelector("#content");if(!target||!isCurrentSession(ticket))return;target.replaceChildren(el("p",{className:"muted",text:"Loading…"}));try{const panel=await moduleView(state.route,ticket);if(!isCurrentSession(ticket)||target!==document.querySelector("#content"))return;target.replaceChildren(panel);}catch(err){if(isCurrentSession(ticket))target.replaceChildren(el("p",{className:"notice error",text:err.message}));}}
+async function loadWorkspace(ticket){const orgs=await getOrganizations(supabase);if(!isCurrentSession(ticket))return;state.org=orgs[0]||null;if(!state.org){organizationScreen(ticket);return;}shell();await render(ticket);}
+async function start(user){const {ticket}=sessionGuard.activate(user?.id??null);activeSessionTicket=ticket;state.user=user;state.org=null;root.replaceChildren();if(!user){authScreen();return;}root.append(el("p",{className:"muted",text:"Loading workspace…"}));try{await loadWorkspace(ticket);}catch(err){if(isCurrentSession(ticket,user.id))root.replaceChildren(el("p",{className:"notice error",text:err.message}));}}
+window.addEventListener("hashchange",()=>{state.route=location.hash.slice(1)||"dashboard";if(state.user&&state.org){shell();void render(activeSessionTicket);}});
 async function boot(){if(!configured){root.textContent="Supabase configuration is required.";return;}const {data:{session}}=await supabase.auth.getSession();await start(session?.user||null);supabase.auth.onAuthStateChange((_event,session)=>queueMicrotask(()=>void start(session?.user||null)));}
 void boot();
