@@ -6,10 +6,11 @@ export function createSessionRequestGuard() {
     activate(userId) {
       const nextUserId = userId ?? null;
       const changed = nextUserId !== activeUserId;
-      if (changed) {
-        activeUserId = nextUserId;
-        generation += 1;
-      }
+      activeUserId = nextUserId;
+      // Every auth initialization creates a new generation, even for the same user.
+      // This prevents an older workspace load from winning after a token refresh
+      // or duplicate auth initialization for the currently signed-in account.
+      generation += 1;
       return { changed, ticket: { userId: activeUserId, generation } };
     },
     isCurrent(ticket) {
@@ -18,7 +19,11 @@ export function createSessionRequestGuard() {
   };
 }
 
-/** Ignore late mutation callbacks after the originating session changes. */
+/**
+ * Suppress stale UI callbacks after the originating session changes.
+ * This does not cancel, reverse, or roll back an operation already dispatched
+ * to the data service; database authorization must still be enforced by RLS.
+ */
 export async function runSessionMutation({ operation, isCurrent, onSuccess, onError }) {
   if (!isCurrent()) return false;
   try {
