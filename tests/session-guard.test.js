@@ -10,6 +10,22 @@ test("invalidates workspace tickets when the authenticated account changes", () 
   assert.equal(guard.isCurrent(second), true);
 });
 
+test("invalidates an earlier initialization when the same account initializes again", () => {
+  const guard = createSessionRequestGuard();
+  const firstInitialization = guard.activate("user-a").ticket;
+  const refreshedInitialization = guard.activate("user-a").ticket;
+  assert.equal(guard.isCurrent(firstInitialization), false);
+  assert.equal(guard.isCurrent(refreshedInitialization), true);
+});
+
+test("only the newest overlapping same-user workspace initialization remains current", () => {
+  const guard = createSessionRequestGuard();
+  const olderLoad = guard.activate("user-a").ticket;
+  const newerLoad = guard.activate("user-a").ticket;
+  assert.equal(guard.isCurrent(olderLoad), false);
+  assert.equal(guard.isCurrent(newerLoad), true);
+});
+
 test("invalidates workspace tickets on sign-out", () => {
   const guard = createSessionRequestGuard();
   const signedIn = guard.activate("user-a").ticket;
@@ -17,7 +33,7 @@ test("invalidates workspace tickets on sign-out", () => {
   assert.equal(guard.isCurrent(signedIn), false);
 });
 
-test("ignores a late successful mutation after account switching", async () => {
+test("ignores a late successful mutation callback after account switching", async () => {
   const guard = createSessionRequestGuard();
   const ticket = guard.activate("user-a").ticket;
   let resolve;
@@ -35,7 +51,7 @@ test("ignores a late successful mutation after account switching", async () => {
   assert.equal(success, false);
 });
 
-test("ignores a late failed mutation after sign-out", async () => {
+test("ignores a late failed mutation callback after sign-out", async () => {
   const guard = createSessionRequestGuard();
   const ticket = guard.activate("user-a").ticket;
   let reject;
